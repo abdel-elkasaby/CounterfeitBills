@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.preprocessing.image import ImageDataGenerator # type: ignore
 from sklearn.metrics import confusion_matrix, classification_report
 
 # Path to the dataset
-image_dir = Path('C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/ES_images/')
+image_dir = Path('C:/Users/abdel/OneDrive/Desktop/Data/ES_images/')
 
 # Get list of all image file paths
 filepaths = list(image_dir.glob(r'**/*.jpg'))
@@ -158,8 +158,11 @@ print("Test Accuracy: {:.2f}%".format(results[1] * 100))
 # Make predictions with the model
 predictions = (model.predict(test_images) >= 0.5).astype(int)
 
+# Map predictions to 'Counterfeit' and 'Real'
+predictions_labels = ['Real' if label == 1 else 'Counterfeit' for label in predictions]
+
 # Update labels in the original DataFrame with predictions
-labels_df.loc[test_df.index, 'Label'] = predictions
+labels_df.loc[test_df.index, 'Label'] = predictions_labels
 
 # Save the updated DataFrame with predictions to a new CSV file
 labels_df.to_csv('C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/predicted_labels.csv', index=False)
