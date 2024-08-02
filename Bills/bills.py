@@ -171,7 +171,7 @@ print("Test Loss: {:.5f}".format(results[0]))
 print("Test Accuracy: {:.2f}%".format(results[1] * 100))
 
 # Make predictions with the model
-predictions = (model.predict(test_images) >= 0.5).astype(int)
+predictions = (model.predict(test_images) >= 0.5).astype(int).flatten()
 
 # Map predictions to 'Counterfeit' and 'Real'
 predictions_labels = ['Real' if label == 1 else 'Counterfeit' for label in predictions]
