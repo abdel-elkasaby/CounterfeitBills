@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator # type: ignore
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import confusion_matrix, classification_report
 
 # Path to the dataset
-image_dir = Path('C:/Users/abdel/OneDrive/Desktop/Data/ES_images/')
+image_dir = Path('C:/Users/abdel/OneDrive/Desktop/Data/ES_images/mcr0515i/')
 
 # Get list of all image file paths
 filepaths = list(image_dir.glob(r'**/*.jpg'))
@@ -44,8 +44,23 @@ if labels_df.empty:
 # Convert labels to strings
 labels_df['Label'] = labels_df['Label'].astype(str)
 
-# Display the first few rows of the DataFrame for debugging
-print(labels_df.head())
+# Display the class distribution
+print("Class distribution before balancing:")
+print(labels_df['Label'].value_counts())
+
+# Check if classes are balanced
+count_real = len(labels_df[labels_df['Label'] == '1'])
+count_counterfeit = len(labels_df[labels_df['Label'] == '0'])
+
+if abs(count_real - count_counterfeit) > 0.1 * len(labels_df):
+    min_count = min(count_real, count_counterfeit)
+    labels_df = pd.concat([
+        labels_df[labels_df['Label'] == '1'].sample(min_count),
+        labels_df[labels_df['Label'] == '0'].sample(min_count)
+    ])
+
+print("Class distribution after balancing:")
+print(labels_df['Label'].value_counts())
 
 # Split dataset into training and testing sets
 train_df, test_df = train_test_split(labels_df, train_size=0.7, shuffle=True, random_state=1)
@@ -136,7 +151,7 @@ model.compile(
 history = model.fit(
     train_images,
     validation_data=val_images,
-    epochs=5,  # Set to 5 epochs
+    epochs=10,  # Increase the number of epochs for better training
     callbacks=[
         tf.keras.callbacks.EarlyStopping(
             monitor='val_loss',
@@ -161,11 +176,12 @@ predictions = (model.predict(test_images) >= 0.5).astype(int)
 # Map predictions to 'Counterfeit' and 'Real'
 predictions_labels = ['Real' if label == 1 else 'Counterfeit' for label in predictions]
 
-# Update labels in the original DataFrame with predictions
-labels_df.loc[test_df.index, 'Label'] = predictions_labels
+# Create a new DataFrame for predictions
+predictions_df = test_df.copy()
+predictions_df['Predicted_Label'] = predictions_labels
 
 # Save the updated DataFrame with predictions to a new CSV file
-labels_df.to_csv('C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/predicted_labels.csv', index=False)
+predictions_df.to_csv('C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/predicted_labels.csv', index=False)
 
 # Convert test labels to a NumPy array
 test_labels = np.array(test_images.labels).astype(int)
