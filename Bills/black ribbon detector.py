@@ -195,7 +195,7 @@ class ImageNavigator:
         self.root.destroy()
 
 # Directory containing images
-image_dir = 'C:/Users/abdel/OneDrive/Desktop/Data/ES_images/Train500/'
+image_dir = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/Train500/'
 # Path to the CSV file
 csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
 
