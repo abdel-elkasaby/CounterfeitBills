@@ -180,10 +180,12 @@ class ImageNavigator:
 
     def on_closing(self):
         positives, negatives, false_positives, false_negatives = self.calculate_summary()
+        total = positives + negatives + false_positives + false_negatives
         print(f"Positives: {positives}")
         print(f"Negatives: {negatives}")
         print(f"False Positives: {false_positives}")
         print(f"False Negatives: {false_negatives}")
+        print(f"Total: {total}")
 
         # Update CSV with final results
         final_results = {**self.detection_results, **self.corrections}

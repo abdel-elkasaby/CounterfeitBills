@@ -4,54 +4,48 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import confusion_matrix, classification_report
 
 # Path to the labeled CSV file
 csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
 
-# Read the CSV file
-labels_df = pd.read_csv(csv_path)
+# Read the CSV file without headers
+labels_df = pd.read_csv(csv_path, header=None, names=['Filepath', 'Label'])
 
-# Check if the DataFrame is empty after reading paths
-if labels_df.empty:
-    raise ValueError("The DataFrame is empty after reading the CSV file. Please check the file paths and labels in the CSV file.")
+# Print the first few rows to ensure it's loaded correctly
+print("First few rows of labels_df:")
+print(labels_df.head())
+
+# Check the shape of the DataFrame
+print(f"Shape of labels_df: {labels_df.shape}")
+
+# Check for missing values
+print("Missing values in each column:")
+print(labels_df.isnull().sum())
 
 # Ensure the Filepath column contains full paths
 labels_df['Filepath'] = labels_df['Filepath'].apply(lambda x: str(Path(x).resolve()))
 
-# Print first few rows of the DataFrame
-print(labels_df.head())
+# Convert labels to strings as required by ImageDataGenerator
+labels_df['Label'] = labels_df['Label'].astype(str)
 
-# Convert labels to integers
-labels_df['Label'] = labels_df['Label'].astype(int)
-
-# Display the class distribution
-print("Class distribution before balancing:")
+# Verify class distribution
+print("Class distribution:")
 print(labels_df['Label'].value_counts())
 
-# Check if classes are balanced
-count_ribbon = len(labels_df[labels_df['Label'] == 1])
-count_no_ribbon = len(labels_df[labels_df['Label'] == 0])
+# Try splitting the dataset
+try:
+    train_df, test_df = train_test_split(labels_df, train_size=0.7, shuffle=True, random_state=1)
+    print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
+except Exception as e:
+    print(f"Error during train_test_split: {e}")
 
-if abs(count_ribbon - count_no_ribbon) > 0.1 * len(labels_df):
-    min_count = min(count_ribbon, count_no_ribbon)
-    labels_df = pd.concat([
-        labels_df[labels_df['Label'] == 1].sample(min_count),
-        labels_df[labels_df['Label'] == 0].sample(min_count)
-    ])
-
-print("Class distribution after balancing:")
-print(labels_df['Label'].value_counts())
-
-# Split dataset into training and testing sets
-train_df, test_df = train_test_split(labels_df, train_size=0.7, shuffle=True, random_state=1)
-
-# Check if the training and test sets are populated
+# Ensure the training and test sets are populated
 if train_df.empty or test_df.empty:
     raise ValueError("The training or test DataFrame is empty after the train-test split.")
 
@@ -111,14 +105,7 @@ test_images = test_generator.flow_from_dataframe(
     shuffle=False
 )
 
-# Verify that images are loaded correctly
-for data_batch, labels_batch in train_images:
-    plt.imshow(data_batch[0])
-    plt.title(f"Label: {labels_batch[0]}")
-    plt.show()
-    break
-
-# Build a more complex model using a pre-trained model
+# Build a model using a pre-trained model
 base_model = tf.keras.applications.MobileNetV2(input_shape=(240, 240, 3), include_top=False, weights='imagenet')
 base_model.trainable = False
 x = base_model.output
@@ -164,23 +151,10 @@ print("Raw predictions (first 10):", raw_predictions[:10])  # Print first 10 raw
 predictions = (raw_predictions >= 0.5).astype(int).flatten()
 print("Thresholded predictions (first 10):", predictions[:10])  # Print first 10 thresholded predictions
 
-# Ensure the test labels are integers for correct comparison
+# Convert test labels to integers
 test_labels = np.array(test_images.labels).astype(int)
 
-# Debugging: Print first 10 predictions and corresponding labels
-print("Predictions: ", predictions[:10])
-print("Test Labels: ", test_labels[:10])
-
-# Update the original labels DataFrame with the predicted labels
-labels_df.loc[test_df.index, 'Predicted_Label'] = predictions
-
-# Map predicted labels to 'Ribbon' and 'No Ribbon'
-labels_df['Predicted_Label'] = labels_df['Predicted_Label'].apply(lambda x: 'Ribbon' if x == 1 else 'No Ribbon')
-
-# Save the updated DataFrame to the same CSV file
-labels_df.to_csv('C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv', index=False)
-
-# Confusion matrix and classification report
+# Generate and print the confusion matrix and classification report
 cm = confusion_matrix(test_labels, predictions)
 clr = classification_report(test_labels, predictions, target_names=["No Ribbon", "Ribbon"])
 
