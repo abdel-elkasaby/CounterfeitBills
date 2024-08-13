@@ -72,7 +72,7 @@ train_images = train_generator.flow_from_dataframe(
     dataframe=train_df,
     x_col='Filepath',
     y_col='Label',
-    target_size=(240, 240),
+    target_size=(224, 224),
     color_mode='rgb',
     class_mode='binary',
     batch_size=32,
@@ -85,7 +85,7 @@ val_images = val_generator.flow_from_dataframe(
     dataframe=train_df,
     x_col='Filepath',
     y_col='Label',
-    target_size=(240, 240),
+    target_size=(224, 224),
     color_mode='rgb',
     class_mode='binary',
     batch_size=32,
@@ -98,7 +98,7 @@ test_images = test_generator.flow_from_dataframe(
     dataframe=test_df,
     x_col='Filepath',
     y_col='Label',
-    target_size=(240, 240),
+    target_size=(224, 224),
     color_mode='rgb',
     class_mode='binary',
     batch_size=32,
@@ -106,7 +106,7 @@ test_images = test_generator.flow_from_dataframe(
 )
 
 # Build a model using a pre-trained model
-base_model = tf.keras.applications.MobileNetV2(input_shape=(240, 240, 3), include_top=False, weights='imagenet')
+base_model = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights='imagenet')
 base_model.trainable = False
 x = base_model.output
 x = tf.keras.layers.GlobalAveragePooling2D()(x)
@@ -124,7 +124,7 @@ model.compile(
 history = model.fit(
     train_images,
     validation_data=val_images,
-    epochs=1,  # Set to 1 epoch for quick testing
+    epochs=10,  # set to 10
     callbacks=[
         tf.keras.callbacks.EarlyStopping(
             monitor='val_loss',
