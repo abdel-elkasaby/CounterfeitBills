@@ -4,7 +4,7 @@ import numpy as np
 import tkinter as tk
 from PIL import Image, ImageTk
 import csv
-
+#test
 def detect_black_stripe(image_path):
     # Load the image
     image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
