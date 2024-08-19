@@ -1,10 +1,12 @@
+import os
 from pathlib import Path
 import cv2
 import numpy as np
 import tkinter as tk
 from PIL import Image, ImageTk
 import csv
-#test
+import pickle
+
 def detect_black_stripe(image_path):
     # Load the image
     image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
@@ -52,7 +54,7 @@ def detect_black_stripe(image_path):
     return False, image
 
 def initial_write_results_to_csv(image_dir, csv_path):
-    image_paths = list(Path(image_dir).glob('*.jpg'))
+    image_paths = list(Path(image_dir).rglob('*.jpg'))  # Recursively get all .jpg files
     results = {}
 
     for image_path in image_paths:
@@ -68,13 +70,23 @@ def initial_write_results_to_csv(image_dir, csv_path):
     return results
 
 class ImageNavigator:
-    def __init__(self, image_dir, csv_path):
+    def __init__(self, image_dir, csv_path, progress_file):
         self.image_dir = image_dir
-        self.image_paths = list(Path(image_dir).glob('*.jpg'))
-        self.current_index = 0
+        self.image_paths = list(Path(image_dir).rglob('*.jpg'))  # Recursively get all .jpg files
         self.csv_path = csv_path
+        self.progress_file = progress_file
+
+        # Load progress if exists
+        if os.path.exists(self.progress_file):
+            with open(self.progress_file, 'rb') as file:
+                saved_data = pickle.load(file)
+                self.current_index = saved_data['current_index']
+                self.corrections = saved_data['corrections']
+        else:
+            self.current_index = 0
+            self.corrections = {}
+
         self.detection_results = initial_write_results_to_csv(image_dir, csv_path)
-        self.corrections = {}
 
         self.root = tk.Tk()
         self.root.title("Image Navigator")
@@ -84,6 +96,9 @@ class ImageNavigator:
 
         self.result_label = tk.Label(self.root, text="")
         self.result_label.pack()
+
+        self.progress_label = tk.Label(self.root, text="")
+        self.progress_label.pack()
 
         self.prev_button = tk.Button(self.root, text="< (Left Arrow)", command=self.prev_image)
         self.prev_button.pack(side="left")
@@ -136,6 +151,7 @@ class ImageNavigator:
                 detection_text = f"Black stripe not detected: ({image_path.name})"
         
         self.result_label.config(text=detection_text)
+        self.progress_label.config(text=f"Progress: {self.current_index + 1}/{len(self.image_paths)}")
 
     def next_image(self):
         self.current_index = (self.current_index + 1) % len(self.image_paths)
@@ -178,7 +194,17 @@ class ImageNavigator:
 
         return positives, negatives, false_positives, false_negatives
 
+    def save_progress(self):
+        # Save progress and corrections
+        with open(self.progress_file, 'wb') as file:
+            pickle.dump({
+                'current_index': self.current_index,
+                'corrections': self.corrections
+            }, file)
+
     def on_closing(self):
+        self.save_progress()
+        
         positives, negatives, false_positives, false_negatives = self.calculate_summary()
         total = positives + negatives + false_positives + false_negatives
         print(f"Positives: {positives}")
@@ -200,6 +226,8 @@ class ImageNavigator:
 image_dir = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/ES_images/'
 # Path to the CSV file
 csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
+# Path to the progress file
+progress_file = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/progress.pkl'
 
 # Start the image navigator
-navigator = ImageNavigator(image_dir, csv_path)
+navigator = ImageNavigator(image_dir, csv_path, progress_file)
