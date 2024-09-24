@@ -225,7 +225,7 @@ class ImageNavigator:
 # Directory containing images
 image_dir = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/ES_images/'
 # Path to the CSV file
-csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
+csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/test.csv'
 # Path to the progress file
 progress_file = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/progress.pkl'
 
