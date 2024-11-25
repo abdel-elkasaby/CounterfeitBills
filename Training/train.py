@@ -12,7 +12,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
 # Path to the labeled CSV file
-csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
+csv_path = 'C:/Users/abdel/OneDrive/Desktop/Momken/Bills/Labels/labels.csv'
 
 # Read the CSV file without headers
 labels_df = pd.read_csv(csv_path, header=None, names=['Filepath', 'Label'])

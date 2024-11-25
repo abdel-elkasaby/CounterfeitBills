@@ -223,11 +223,11 @@ class ImageNavigator:
         self.root.destroy()
 
 # Directory containing images
-image_dir = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/ES_images/'
+image_dir = 'C:/Users/abdel/OneDrive/Desktop/Momken/Bills/ES_images/'
 # Path to the CSV file
-csv_path = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/labels.csv'
+csv_path = 'C:/Users/abdel/OneDrive/Desktop/Momken/Bills/Labels/labels.csv'
 # Path to the progress file
-progress_file = 'C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/progress.pkl'
+progress_file = 'C:/Users/abdel/OneDrive/Desktop/Momken/Bills/Sorting/progress.pkl'
 
 # Start the image navigator
 navigator = ImageNavigator(image_dir, csv_path, progress_file)
