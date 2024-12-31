@@ -1,170 +1,90 @@
-import os
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-import numpy as np
+import json
+import os 
 import pandas as pd
 from pathlib import Path
-import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, classification_report
+import tensorflow as tf
 
-# Path to the labeled CSV file
-csv_path = 'C:/Users/abdel/OneDrive/Desktop/Momken/Bills/Labels/labels.csv'
+def load_config():
+    """Load the configuration JSON."""
+    scripts_path = os.path.abspath(os.path.dirname(__file__))
+    json_file = os.path.join(scripts_path, "..", "config.json")
+    with open(json_file, "r") as config_file:
+        return json.load(config_file)
 
-# Read the CSV file without headers
-labels_df = pd.read_csv(csv_path, header=None, names=['Filepath', 'Label'])
+def validate_file(file_path):
+    """Ensure the specified file exists."""
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
 
-# Print the first few rows to ensure it's loaded correctly
-print("First few rows of labels_df:")
-print(labels_df.head())
+# Usage
+config = load_config()
+labels_csv = config["labels_csv"]
+validate_file(labels_csv)
 
-# Check the shape of the DataFrame
-print(f"Shape of labels_df: {labels_df.shape}")
+# Load labeled data
+labels_df = pd.read_csv(labels_csv, header=None, names=['Filepath', 'Label', 'Amount'])
+print(f"Loaded {len(labels_df)} rows from {labels_csv}")
 
-# Check for missing values
-print("Missing values in each column:")
-print(labels_df.isnull().sum())
-
-# Ensure the Filepath column contains full paths
 labels_df['Filepath'] = labels_df['Filepath'].apply(lambda x: str(Path(x).resolve()))
-
-# Convert labels to strings as required by ImageDataGenerator
 labels_df['Label'] = labels_df['Label'].astype(str)
 
-# Verify class distribution
-print("Class distribution:")
-print(labels_df['Label'].value_counts())
 
-# Try splitting the dataset
-try:
-    train_df, test_df = train_test_split(labels_df, train_size=0.7, shuffle=True, random_state=1)
-    print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
-except Exception as e:
-    print(f"Error during train_test_split: {e}")
+# Split the data
+train_df, test_df = train_test_split(labels_df, train_size=0.7, shuffle=True, random_state=1)
 
-# Ensure the training and test sets are populated
-if train_df.empty or test_df.empty:
-    raise ValueError("The training or test DataFrame is empty after the train-test split.")
-
-# Create ImageDataGenerators
-train_generator = ImageDataGenerator(
-    rescale=1./255,
-    horizontal_flip=True,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    validation_split=0.2
-)
-
-val_generator = ImageDataGenerator(
-    rescale=1./255,
-    validation_split=0.2
-)
-
-test_generator = ImageDataGenerator(
-    rescale=1./255
-)
-
-# Generate batches of tensor image data
+# Data generators
+train_generator = ImageDataGenerator(rescale=1./255, validation_split=0.2)
 train_images = train_generator.flow_from_dataframe(
-    dataframe=train_df,
-    x_col='Filepath',
-    y_col='Label',
-    target_size=(224, 224),
-    color_mode='rgb',
-    class_mode='binary',
-    batch_size=32,
-    shuffle=True,
-    seed=42,
-    subset='training'
+    train_df, x_col='Filepath', y_col='Label', target_size=(224, 224),
+    batch_size=32, class_mode='binary', subset='training'
 )
 
-val_images = val_generator.flow_from_dataframe(
-    dataframe=train_df,
-    x_col='Filepath',
-    y_col='Label',
-    target_size=(224, 224),
-    color_mode='rgb',
-    class_mode='binary',
-    batch_size=32,
-    shuffle=True,
-    seed=42,
-    subset='validation'
+val_images = train_generator.flow_from_dataframe(
+    train_df, x_col='Filepath', y_col='Label', target_size=(224, 224),
+    batch_size=32, class_mode='binary', subset='validation'
 )
 
-test_images = test_generator.flow_from_dataframe(
-    dataframe=test_df,
-    x_col='Filepath',
-    y_col='Label',
-    target_size=(224, 224),
-    color_mode='rgb',
-    class_mode='binary',
-    batch_size=32,
-    shuffle=False
-)
-
-# Build a model using a pre-trained model
+# Model setup
 base_model = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights='imagenet')
 base_model.trainable = False
-x = base_model.output
-x = tf.keras.layers.GlobalAveragePooling2D()(x)
-x = tf.keras.layers.Dense(128, activation='relu')(x)
-outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
-model = tf.keras.Model(inputs=base_model.input, outputs=outputs)
 
-model.compile(
-    optimizer='adam',
-    loss='binary_crossentropy',
-    metrics=['accuracy']
+model = tf.keras.Sequential([
+    base_model,
+    tf.keras.layers.GlobalAveragePooling2D(),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Training
+history = model.fit(train_images, validation_data=val_images, epochs=10)
+
+# Evaluation
+results = model.evaluate(val_images)
+print(f"Validation Accuracy: {results[1] * 100:.2f}%")
+
+# Predictions and report
+test_generator = ImageDataGenerator(rescale=1./255)
+test_images = test_generator.flow_from_dataframe(
+    test_df, x_col='Filepath', y_col='Label', target_size=(224, 224),
+    batch_size=32, class_mode='binary', shuffle=False
 )
 
-# Train the model
-history = model.fit(
-    train_images,
-    validation_data=val_images,
-    epochs=10,  # set to 10
-    callbacks=[
-        tf.keras.callbacks.EarlyStopping(
-            monitor='val_loss',
-            patience=3,
-            restore_best_weights=True
-        ),
-        tf.keras.callbacks.ReduceLROnPlateau(
-            monitor='val_loss',
-            patience=2
-        )
-    ]
-)
+predictions = (model.predict(test_images) > 0.5).astype(int).flatten()
+test_labels = test_images.labels
 
-# Evaluate the model on the test set
-results = model.evaluate(test_images, verbose=0)
-print("Test Loss: {:.5f}".format(results[0]))
-print("Test Accuracy: {:.2f}%".format(results[1] * 100))
-
-# Make predictions with the model
-raw_predictions = model.predict(test_images)
-print("Raw predictions (first 10):", raw_predictions[:10])  # Print first 10 raw predictions
-
-# Convert raw predictions to binary labels
-predictions = (raw_predictions >= 0.5).astype(int).flatten()
-print("Thresholded predictions (first 10):", predictions[:10])  # Print first 10 thresholded predictions
-
-# Convert test labels to integers
-test_labels = np.array(test_images.labels).astype(int)
-
-# Generate and print the confusion matrix and classification report
+# Confusion matrix and classification report
 cm = confusion_matrix(test_labels, predictions)
 clr = classification_report(test_labels, predictions, target_names=["No Ribbon", "Ribbon"])
 
 plt.figure(figsize=(6, 6))
-sns.heatmap(cm, annot=True, fmt='g', vmin=0, cmap='Blues', cbar=False)
-plt.xticks(ticks=[0.5, 1.5], labels=["No Ribbon", "Ribbon"])
-plt.yticks(ticks=[0.5, 1.5], labels=["No Ribbon", "Ribbon"])
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.title("Confusion Matrix")
 plt.show()
 
-print("Classification Report:\n----------------------\n", clr)
+print("Classification Report:\n", clr)

@@ -1,0 +1,6 @@
+{
+    "base_image_dir": "C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/ES_images",
+    "output_csv": "C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/Labels/my_labels.csv",
+    "labels_csv": "C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/Labels/temp_labels.csv",
+    "progress_file": "C:/Users/abdel/OneDrive/Desktop/TF Work/Bills/Sorting/amount_progress.pkl"
+}
