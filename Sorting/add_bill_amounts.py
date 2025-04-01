@@ -8,14 +8,14 @@ import os
 
 # Function to load configuration
 def load_config():
-    """Load the configuration JSON."""
+    # Load the configuration JSON.
     scripts_path = os.path.abspath(os.path.dirname(__file__))
     json_file = os.path.join(scripts_path, "..", "config.json")
     with open(json_file, "r") as config_file:
         return json.load(config_file)
 
 def validate_file(file_path):
-    """Ensure the specified file exists."""
+    # Ensure the specified file exists.
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
