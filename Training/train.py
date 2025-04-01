@@ -1,10 +1,14 @@
 import json
-import os 
+import os
 import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
+from tensorflow.keras.utils import to_categorical
+from sklearn.metrics import confusion_matrix, classification_report
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def load_config():
     #Load the configuration JSON.
